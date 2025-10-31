@@ -1,0 +1,12 @@
+{
+  "configurations":[{
+      "cppStandard":"c++17",
+      "intelliSenseMode":"linux-clang-x64",
+      "compilerPath":"/usr/bin/clang",
+      "includePath":["${workspaceFolder}/**","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include/**","/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include/**","/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include","/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include","/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include/**"],
+      "cStandard":"c17",
+      "name":"Linux",
+      "defines":[]
+    }],
+  "version":4
+}
