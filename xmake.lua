@@ -3,7 +3,7 @@ add_requires("raylib", "raygui", "box2d", "toml11")
 
 add_rules("plugin.compile_commands.autoupdate", { outputdir = ".zed", lsp = "clangd" })
 
-target("the-jumper")
+target("the-impale-game")
 set_kind("binary")
 set_configdir("$(builddir)/$(plat)/$(arch)/$(mode)")
 add_configfiles("src/assets/**", { onlycopy = true, prefixdir = "" })
