@@ -17,6 +17,14 @@
 #include <cmath>
 #include <cstdio>
 #include <map>
+#include <string>
+
+// Platform-specific asset path prefix
+#ifdef __EMSCRIPTEN__
+#define ASSET_PATH(path) ("/assets/" path)
+#else
+#define ASSET_PATH(path) (path)
+#endif
 
 // Simple texture cache to avoid loading same texture multiple times
 struct TextureCache
@@ -66,8 +74,8 @@ int main(void)
     // Create texture cache
     TextureCache textureCache;
 
-    Texture groundTexture = textureCache.load("ground.png");
-    Texture boxTexture = textureCache.load("block.png");
+    Texture groundTexture = textureCache.load(ASSET_PATH("ground.png"));
+    Texture boxTexture = textureCache.load(ASSET_PATH("block.png"));
 
     b2Vec2 groundExtent = {0.5f * groundTexture.width, 0.5f * groundTexture.height};
     b2Vec2 boxExtent = {0.5f * boxTexture.width, 0.5f * boxTexture.height};
@@ -90,8 +98,20 @@ int main(void)
                             groundExtent, boxExtent,
                             dummyGrounds, boxEntities, obstacleEntities, spikeEntities, throwerEntities,
                             [&textureCache](const std::string &path)
-                            { return textureCache.load(path); }};
-    level::LoadScenarioFromToml("levels/demo.toml", ctx);
+                            {
+#ifdef __EMSCRIPTEN__
+                                // If path doesn't start with /assets/, prepend it
+                                std::string fullPath = path;
+                                if (fullPath.find("/assets/") != 0)
+                                {
+                                    fullPath = "/assets/" + path;
+                                }
+                                return textureCache.load(fullPath);
+#else
+                                return textureCache.load(path);
+#endif
+                            }};
+    level::LoadScenarioFromToml(ASSET_PATH("levels/demo.toml"), ctx);
 
     bool pause = false;
     bool showDebugWireframe = true; // toggle with 'D' key
