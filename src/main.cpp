@@ -89,6 +89,13 @@ int main(void)
 
                 b2Vec2 boxPos = b2Body_GetPosition(box.body.id);
 
+                // Debug: print box position occasionally
+                static int debugCounter = 0;
+                if (debugCounter++ % 60 == 0 && boxEntities.size() > 0)
+                {
+                    printf("Box pos: (%.2f, %.2f), Spikes: %zu\n", boxPos.x, boxPos.y, spikeEntities.size());
+                }
+
                 for (const auto &spike : spikeEntities)
                 {
                     b2Vec2 spikePos = b2Body_GetPosition(spike.body.id);
@@ -99,7 +106,15 @@ int main(void)
                     // Check collision (simple radius check)
                     float spikeRadius = (spike.transform.extent.x + spike.transform.extent.y) * 0.5f / lengthUnitsPerMeter;
                     float boxRadius = (box.transform.extent.x + box.transform.extent.y) * 0.5f / lengthUnitsPerMeter;
-                    float threshold = (spikeRadius + boxRadius) * 0.8f; // slightly tighter for better feel
+                    float threshold = (spikeRadius + boxRadius) * 1.5f; // Increased for easier collision
+
+                    // Debug: log near-misses
+                    float dist = sqrtf(distSq);
+                    if (dist < threshold * 2.0f && debugCounter % 30 == 0)
+                    {
+                        printf("Near spike: dist=%.2f, threshold=%.2f, spike@(%.2f,%.2f)\n",
+                               dist, threshold, spikePos.x, spikePos.y);
+                    }
 
                     if (distSq < threshold * threshold)
                     {

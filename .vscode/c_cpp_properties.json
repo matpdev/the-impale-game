@@ -2,11 +2,11 @@
   "version":4,
   "configurations":[{
       "compilerPath":"/usr/bin/clang",
-      "cStandard":"c17",
-      "cppStandard":"c++17",
-      "includePath":["${workspaceFolder}/**","/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/d9b5d9555a9849b0a8e5714c4e66d566/include/**","/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include/**","/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include/**","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/d9b5d9555a9849b0a8e5714c4e66d566/include","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include/**","/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include"],
-      "name":"Linux",
+      "defines":[],
       "intelliSenseMode":"linux-clang-x64",
-      "defines":[]
+      "name":"Linux",
+      "cStandard":"c17",
+      "includePath":["${workspaceFolder}/**","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/d9b5d9555a9849b0a8e5714c4e66d566/include/**","/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include/**","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include","/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/d9b5d9555a9849b0a8e5714c4e66d566/include","/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include/**","/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include/**"],
+      "cppStandard":"c++17"
     }]
 }

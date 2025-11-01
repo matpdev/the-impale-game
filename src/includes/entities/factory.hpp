@@ -209,18 +209,26 @@ inline GameEntity makeSpikeEntity(
     const VisualStyle &visualStyle = VisualStyle{{RED}, 0.0f, false})
 {
     b2BodyDef def = b2DefaultBodyDef();
-    def.type = b2_kinematicBody; // Changed to kinematic so joints work
+    def.type = b2_dynamicBody; // Dynamic so joints work
     def.position = posMeters;
+    def.gravityScale = 0.0f; // Zero gravity to keep spike stationary
     GameEntity e{};
     e.id = em.create();
     e.body.id = b2CreateBody(world, &def);
     e.transform.extent = {radiusPx, radiusPx};
     e.visual = visualStyle;
     e.spikeProps = spikeProps;
-    // approximate with box for now
+    // Create heavy static-like shape so spike doesn't move
     b2Polygon poly = b2MakeBox(radiusPx / unitsPerMeter, radiusPx / unitsPerMeter);
     b2ShapeDef sdef = b2DefaultShapeDef();
+    sdef.density = 10000.0f; // Very heavy to resist movement
+    sdef.material.friction = 1.0f;
     b2CreatePolygonShape(e.body.id, &sdef, &poly);
+
+    // Add high damping to prevent any movement
+    b2Body_SetLinearDamping(e.body.id, 100.0f);
+    b2Body_SetAngularDamping(e.body.id, 100.0f);
+
     e.script.update = &SpikeUpdate;
     e.script.render = &SpikeRender;
     return e;
