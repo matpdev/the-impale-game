@@ -15,6 +15,35 @@
 #include <vector>
 #include <cmath>
 #include <cstdio>
+#include <map>
+
+// Simple texture cache to avoid loading same texture multiple times
+struct TextureCache
+{
+    std::map<std::string, Texture> textures;
+
+    Texture load(const std::string &path)
+    {
+        auto it = textures.find(path);
+        if (it != textures.end())
+        {
+            return it->second;
+        }
+        Texture tex = LoadTexture(path.c_str());
+        textures[path] = tex;
+        printf("Loaded texture: %s (%dx%d)\n", path.c_str(), tex.width, tex.height);
+        return tex;
+    }
+
+    void unloadAll()
+    {
+        for (auto &pair : textures)
+        {
+            UnloadTexture(pair.second);
+        }
+        textures.clear();
+    }
+};
 
 // GameEntity is declared in includes/entities/types.hpp
 
@@ -36,8 +65,11 @@ int main(void)
     worldDef.gravity.y = 1.8f * lengthUnitsPerMeter;
     b2WorldId worldId = b2CreateWorld(&worldDef);
 
-    Texture groundTexture = LoadTexture("ground.png");
-    Texture boxTexture = LoadTexture("box.png");
+    // Create texture cache
+    TextureCache textureCache;
+
+    Texture groundTexture = textureCache.load("ground.png");
+    Texture boxTexture = textureCache.load("block.png");
 
     b2Vec2 groundExtent = {0.5f * groundTexture.width, 0.5f * groundTexture.height};
     b2Vec2 boxExtent = {0.5f * boxTexture.width, 0.5f * boxTexture.height};
@@ -52,17 +84,29 @@ int main(void)
     std::vector<GameEntity> spikeEntities;
     std::vector<GameEntity> throwerEntities;
 
-    // Load scenario from TOML
+    // Load scenario from TOML with texture loader
     std::vector<GameEntity> dummyGrounds; // not used, kept for API compat
     level::BuildContext ctx{entityManager, worldId, lengthUnitsPerMeter,
                             groundTexture, boxTexture,
                             groundPolygon, boxPolygon,
                             groundExtent, boxExtent,
-                            dummyGrounds, boxEntities, obstacleEntities, spikeEntities, throwerEntities};
+                            dummyGrounds, boxEntities, obstacleEntities, spikeEntities, throwerEntities,
+                            [&textureCache](const std::string &path)
+                            { return textureCache.load(path); }};
     level::LoadScenarioFromToml("levels/demo.toml", ctx);
 
     bool pause = false;
     bool showDebugWireframe = true; // toggle with 'D' key
+
+    // Debug rope toggle state
+    struct DebugRope
+    {
+        b2BodyId anchor{b2_nullBodyId};
+        b2BodyId weight{b2_nullBodyId};
+        b2JointId joint{b2_nullJointId};
+        bool active{false};
+        float ropeLenM{12.0f};
+    } debugRope;
 
     while (!WindowShouldClose())
     {
@@ -98,22 +142,44 @@ int main(void)
 
                 for (const auto &spike : spikeEntities)
                 {
-                    b2Vec2 spikePos = b2Body_GetPosition(spike.body.id);
-                    float dx = boxPos.x - spikePos.x;
-                    float dy = boxPos.y - spikePos.y;
+                    // Determine target for collision depending on spike type
+                    b2Vec2 targetPos = b2Body_GetPosition(spike.body.id);
+                    float targetRadius = (spike.transform.extent.x + spike.transform.extent.y) * 0.5f / lengthUnitsPerMeter;
+                    // For chain spikes, use the hook as the collision target
+                    if (spike.spikeProps.type == SpikeType::CHAIN && spike.script.user)
+                    {
+                        struct ChainContext
+                        {
+                            b2BodyId hookBody;
+                            float halfW;
+                            float halfH;
+                        };
+                        auto *ctx = static_cast<ChainContext *>(spike.script.user);
+                        if (ctx)
+                        {
+                            targetPos = b2Body_GetPosition(ctx->hookBody);
+                            float hookHalfW = ctx->halfW * spike.spikeProps.hookScaleW;
+                            float hookHalfH = ctx->halfH * spike.spikeProps.hookScaleH;
+                            // approximate radius as half of diagonal
+                            float hookRadiusPx = sqrtf(hookHalfW * hookHalfW + hookHalfH * hookHalfH);
+                            targetRadius = hookRadiusPx / lengthUnitsPerMeter;
+                        }
+                    }
+
+                    float dx = boxPos.x - targetPos.x;
+                    float dy = boxPos.y - targetPos.y;
                     float distSq = dx * dx + dy * dy;
 
                     // Check collision (simple radius check)
-                    float spikeRadius = (spike.transform.extent.x + spike.transform.extent.y) * 0.5f / lengthUnitsPerMeter;
                     float boxRadius = (box.transform.extent.x + box.transform.extent.y) * 0.5f / lengthUnitsPerMeter;
-                    float threshold = (spikeRadius + boxRadius) * 1.5f; // Increased for easier collision
+                    float threshold = (targetRadius + boxRadius) * 1.25f; // Slight margin for easier collision
 
                     // Debug: log near-misses
                     float dist = sqrtf(distSq);
                     if (dist < threshold * 2.0f && debugCounter % 30 == 0)
                     {
-                        printf("Near spike: dist=%.2f, threshold=%.2f, spike@(%.2f,%.2f)\n",
-                               dist, threshold, spikePos.x, spikePos.y);
+                        printf("Near target: dist=%.2f, threshold=%.2f, target@(%.2f,%.2f) type=%d\n",
+                               dist, threshold, targetPos.x, targetPos.y, (int)spike.spikeProps.type);
                     }
 
                     if (distSq < threshold * threshold)
@@ -126,17 +192,29 @@ int main(void)
                         {
                         case SpikeType::CHAIN:
                         {
-                            // Create distance joint: box swings like a chain link
+                            // Create distance joint: box swings from the chain hook if available
+                            struct ChainContext
+                            {
+                                b2BodyId hookBody;
+                                float halfW;
+                                float halfH;
+                            };
+                            b2BodyId hook = spike.body.id;
+                            if (spike.script.user)
+                            {
+                                auto *ctx = static_cast<ChainContext *>(spike.script.user);
+                                hook = ctx->hookBody;
+                            }
                             b2DistanceJointDef jointDef = b2DefaultDistanceJointDef();
-                            jointDef.bodyIdA = spike.body.id;
+                            jointDef.bodyIdA = hook;
                             jointDef.bodyIdB = box.body.id;
                             jointDef.localAnchorA = {0.0f, 0.0f}; // spike center
                             jointDef.localAnchorB = {0.0f, 0.0f}; // box center
                             jointDef.length = sqrtf(distSq);      // current distance
                             jointDef.minLength = 0.5f;            // allow some slack
                             jointDef.maxLength = jointDef.length * 1.5f;
-                            jointDef.hertz = 3.0f; // stiff constraint
-                            jointDef.dampingRatio = 0.5f;
+                            jointDef.hertz = spike.spikeProps.jointHertz; // configurable stiffness
+                            jointDef.dampingRatio = spike.spikeProps.jointDamping;
                             box.impaled.jointId = b2CreateDistanceJoint(worldId, &jointDef);
                             box.impaled.frozen = true; // mark as captured
                             printf("✓ Box attached to chain hook! Joint: %d\n", box.impaled.jointId.index1);
@@ -167,6 +245,66 @@ int main(void)
                 }
             }
         }
+
+        // Toggle a standalone debug rope (press R)
+        // if (IsKeyPressed(KEY_R))
+        // {
+        //     if (!debugRope.active)
+        //     {
+        //         // Create static anchor near top-center
+        //         float anchorX = (width * 0.5f) / lengthUnitsPerMeter;
+        //         float anchorY = (height * 0.2f) / lengthUnitsPerMeter; // near top
+        //         b2BodyDef adef = b2DefaultBodyDef();
+        //         adef.type = b2_staticBody;
+        //         adef.position = {anchorX, anchorY};
+        //         debugRope.anchor = b2CreateBody(worldId, &adef);
+
+        //         // Create dynamic weight below anchor
+        //         b2BodyDef wdef = b2DefaultBodyDef();
+        //         wdef.type = b2_dynamicBody;
+        //         wdef.position = {anchorX, anchorY + debugRope.ropeLenM};
+        //         wdef.linearDamping = 0.05f;
+        //         wdef.angularDamping = 0.05f;
+        //         debugRope.weight = b2CreateBody(worldId, &wdef);
+        //         // Attach a small box shape so it’s visible and has mass
+        //         float halfWm = (boxExtent.x * 0.25f) / lengthUnitsPerMeter;
+        //         float halfHm = (boxExtent.y * 0.25f) / lengthUnitsPerMeter;
+        //         b2Polygon wpoly = b2MakeBox(halfWm, halfHm);
+        //         b2ShapeDef wsdef = b2DefaultShapeDef();
+        //         wsdef.density = 1.0f;
+        //         wsdef.material.friction = 0.6f;
+        //         wsdef.material.restitution = 0.0f;
+        //         b2CreatePolygonShape(debugRope.weight, &wsdef, &wpoly);
+
+        //         // Create distance joint configured as a rope (min/max length)
+        //         b2DistanceJointDef jdef = b2DefaultDistanceJointDef();
+        //         jdef.bodyIdA = debugRope.anchor;
+        //         jdef.bodyIdB = debugRope.weight;
+        //         jdef.localAnchorA = {0.0f, 0.0f};
+        //         jdef.localAnchorB = {0.0f, 0.0f};
+        //         jdef.length = debugRope.ropeLenM;    // nominal
+        //         jdef.minLength = 0.0f;               // allow slack
+        //         jdef.maxLength = debugRope.ropeLenM; // rope limit
+        //         jdef.enableSpring = false;           // pure rope behavior
+        //         jdef.hertz = 0.0f;                   // ignored if spring disabled
+        //         jdef.dampingRatio = 0.0f;            // ignored if spring disabled
+        //         debugRope.joint = b2CreateDistanceJoint(worldId, &jdef);
+
+        //         debugRope.active = true;
+        //         printf("[DEBUG ROPE] Created (length=%.2fm) at (%.2f,%.2f)\n", debugRope.ropeLenM, anchorX, anchorY);
+        //     }
+        //     else
+        //     {
+        //         if (B2_IS_NON_NULL(debugRope.joint))
+        //             b2DestroyJoint(debugRope.joint);
+        //         if (B2_IS_NON_NULL(debugRope.weight))
+        //             b2DestroyBody(debugRope.weight);
+        //         if (B2_IS_NON_NULL(debugRope.anchor))
+        //             b2DestroyBody(debugRope.anchor);
+        //         debugRope = DebugRope{}; // reset
+        //         printf("[DEBUG ROPE] Destroyed\n");
+        //     }
+        // }
 
         Vector2 mouseScreen = GetMousePosition();
 
@@ -329,7 +467,7 @@ int main(void)
                 DrawCircleV(center, 3.0f, BLUE);
             }
 
-            // Draw spikes
+            // Draw spikes (and chain debug if present)
             for (const auto &spike : spikeEntities)
             {
                 b2Vec2 pos = b2Body_GetPosition(spike.body.id);
@@ -337,6 +475,58 @@ int main(void)
                 float r = (spike.transform.extent.x + spike.transform.extent.y) * 0.5f;
                 DrawCircleLines(center.x, center.y, r, RED);
                 DrawCircleV(center, 4.0f, RED);
+
+                // Chain/Rope system debug overlay (bright outlines)
+                if (spike.spikeProps.type == SpikeType::CHAIN && spike.script.user)
+                {
+                    struct ChainContext
+                    {
+                        b2BodyId hookBody;
+                        float halfW;
+                        float halfH;
+                    };
+                    auto *ctx = static_cast<ChainContext *>(spike.script.user);
+                    if (ctx)
+                    {
+                        Color ropeColor = SKYBLUE;
+                        Color hookColor = YELLOW;
+                        // Draw rope line from spike bottom to hook top
+                        b2Vec2 sp = b2Body_GetPosition(spike.body.id);
+                        Vector2 sc = {sp.x * lengthUnitsPerMeter, sp.y * lengthUnitsPerMeter};
+                        Vector2 anchorBot = {sc.x, sc.y + spike.transform.extent.y};
+                        b2Vec2 hp = b2Body_GetPosition(ctx->hookBody);
+                        b2Rot hr = b2Body_GetRotation(ctx->hookBody);
+                        float ha = b2Rot_GetAngle(hr);
+                        Vector2 hc = {hp.x * lengthUnitsPerMeter, hp.y * lengthUnitsPerMeter};
+                        Vector2 topOff = {0.0f, -ctx->halfH * spike.spikeProps.hookScaleH};
+                        float ca = cosf(ha), sa = sinf(ha);
+                        Vector2 hookTop = {hc.x + topOff.x * ca - topOff.y * sa, hc.y + topOff.x * sa + topOff.y * ca};
+                        DrawLineEx(anchorBot, hookTop, 2.0f, ropeColor);
+
+                        // Draw hook outline (scaled)
+                        {
+                            Vector2 hsize = {2.0f * ctx->halfW * spike.spikeProps.hookScaleW, 2.0f * ctx->halfH * spike.spikeProps.hookScaleH};
+                            Vector2 half = {hsize.x * 0.5f, hsize.y * 0.5f};
+                            Vector2 corners[4] = {
+                                {-half.x, -half.y}, {half.x, -half.y}, {half.x, half.y}, {-half.x, half.y}};
+                            ca = cosf(ha);
+                            sa = sinf(ha);
+                            for (int i = 0; i < 4; ++i)
+                            {
+                                float rx = corners[i].x * ca - corners[i].y * sa;
+                                float ry = corners[i].x * sa + corners[i].y * ca;
+                                corners[i].x = hc.x + rx;
+                                corners[i].y = hc.y + ry;
+                            }
+                            for (int i = 0; i < 4; ++i)
+                            {
+                                int j = (i + 1) % 4;
+                                DrawLineEx(corners[i], corners[j], 3.0f, hookColor);
+                            }
+                            DrawCircleV(hc, 3.0f, hookColor);
+                        }
+                    }
+                }
             }
 
             // Draw thrower
@@ -350,7 +540,19 @@ int main(void)
             }
 
             // Draw debug info text
-            DrawText("DEBUG MODE (D to toggle)", 10, height - 30, 20, WHITE);
+            // Draw debug rope if active
+            if (debugRope.active)
+            {
+                b2Vec2 ap = b2Body_GetPosition(debugRope.anchor);
+                b2Vec2 wp = b2Body_GetPosition(debugRope.weight);
+                Vector2 a = {ap.x * lengthUnitsPerMeter, ap.y * lengthUnitsPerMeter};
+                Vector2 w = {wp.x * lengthUnitsPerMeter, wp.y * lengthUnitsPerMeter};
+                DrawLineEx(a, w, 3.0f, SKYBLUE);
+                DrawCircleV(a, 5.0f, RAYWHITE);
+                DrawCircleV(w, 6.0f, YELLOW);
+            }
+
+            DrawText("DEBUG MODE (D to toggle) — Chain/Rope overlay active | R: toggle debug rope", 10, height - 30, 20, WHITE);
             char entityCount[100];
             snprintf(entityCount, sizeof(entityCount), "Boxes: %zu | Obstacles: %zu | Spikes: %zu",
                      boxEntities.size(), obstacleEntities.size(), spikeEntities.size());
@@ -360,8 +562,12 @@ int main(void)
         EndDrawing();
     }
 
-    UnloadTexture(groundTexture);
-    UnloadTexture(boxTexture);
+    // Cleanup debug rope on exit
+    // (These ids are local to main scope; ensure destruction if still active)
+    // Note: Bodies/joints are auto-destroyed on world destroy, but we are explicit.
+    // We don't have access to debugRope here because it was defined inside the loop scope.
+
+    textureCache.unloadAll();
 
     CloseWindow();
 

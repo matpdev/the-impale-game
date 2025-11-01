@@ -5,6 +5,7 @@ x = 600
 y = 800
 power = 250.0
 impulseMultiplier = 18.0
+texture = "box.png"      # Asset for thrower
 
 # Obstacles with custom colors
 [[obstacles]]
@@ -12,15 +13,16 @@ x = 300
 y = 980
 w = 500
 h = 40
-color = [139, 69, 19] # Brown platform
+color = [139, 69, 19]  # Brown platform
 roundness = 0.1
+texture = "ground.png" # Asset for this obstacle
 
-[[obstacles]]
-x = 1000
-y = 900
-w = 300
-h = 40
-color = [100, 100, 100] # Gray platform
+# [[obstacles]]
+# x = 1000
+# y = 900
+# w = 300
+# h = 40
+# color = [100, 100, 100] # Gray platform
 
 # Different spike types
 [[spikes]]
@@ -29,6 +31,7 @@ y = 820
 r = 24
 type = "normal"
 color = [255, 0, 0] # Red spike
+texture = "box.png" # Asset for normal spike
 
 [[spikes]]
 x = 1500
@@ -37,11 +40,23 @@ r = 28
 type = "saw"
 rotationSpeed = 120.0
 color = [200, 50, 50] # Dark red saw
+texture = "box.png"   # Asset for saw spike
 
 [[spikes]]
-x = 800
-y = 600
+x = 900
+y = 200
 r = 20
 type = "chain"
-chainLength = 100.0
-color = [150, 150, 150] # Gray chain hook
+chainLength = 200.0
+linkLengthPx = 10.0
+linkThicknessPx = 6.0
+linkDensity = 0.0
+linkFriction = 0.6
+linkRestitution = 0.0
+hookScaleW = 1.3
+hookScaleH = 1.6
+jointHertz = 3.0
+jointDamping = 0.5
+chainSelfCollide = false
+color = [150, 150, 150]  # Gray chain hook
+texture = "box.png"      # Asset for chain hook

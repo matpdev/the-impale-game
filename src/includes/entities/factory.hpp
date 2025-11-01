@@ -3,6 +3,7 @@
 #include "box2d/box2d.h"
 
 #include "types.hpp"
+#include <vector>
 #include "../components/physics_body.hpp"
 #include "../components/transform.hpp"
 #include "../components/sprite.hpp"
@@ -49,7 +50,18 @@ inline void DrawSolidBox(const GameEntity &e, float unitsPerMeter, Color color)
 
 inline void ObstacleRender(const GameEntity &e, float unitsPerMeter)
 {
-    DrawSolidBox(e, unitsPerMeter, e.visual.color);
+    // Draw textured rectangle at body's transform
+    b2Vec2 p = b2Body_GetPosition(e.body.id);
+    b2Rot rot = b2Body_GetRotation(e.body.id);
+    float radians = b2Rot_GetAngle(rot);
+    Vector2 center = {p.x * unitsPerMeter, p.y * unitsPerMeter};
+    Vector2 size = {2.0f * e.transform.extent.x, 2.0f * e.transform.extent.y};
+
+    Rectangle source = {0, 0, (float)e.sprite.texture.width, (float)e.sprite.texture.height};
+    Rectangle dest = {center.x, center.y, size.x, size.y};
+    Vector2 origin = {e.transform.extent.x, e.transform.extent.y};
+
+    DrawTexturePro(e.sprite.texture, source, dest, origin, RAD2DEG * radians, WHITE);
 }
 
 inline void SpikeRender(const GameEntity &e, float unitsPerMeter)
@@ -61,15 +73,17 @@ inline void SpikeRender(const GameEntity &e, float unitsPerMeter)
     switch (e.spikeProps.type)
     {
     case SpikeType::NORMAL:
-        // Standard spike circle
-        DrawCircleV(center, r, e.visual.color);
-        // spokes
-        for (int i = 0; i < 12; ++i)
+        // Draw textured square for spike
         {
-            float a = (2.0f * PI * i) / 12.0f;
-            Vector2 a0 = {center.x + cosf(a) * (r * 0.6f), center.y + sinf(a) * (r * 0.6f)};
-            Vector2 a1 = {center.x + cosf(a) * (r * 1.1f), center.y + sinf(a) * (r * 1.1f)};
-            DrawLineV(a0, a1, BROWN);
+            b2Rot rot = b2Body_GetRotation(e.body.id);
+            float radians = b2Rot_GetAngle(rot);
+            Vector2 size = {2.0f * e.transform.extent.x, 2.0f * e.transform.extent.y};
+
+            Rectangle source = {0, 0, (float)e.sprite.texture.width, (float)e.sprite.texture.height};
+            Rectangle dest = {center.x, center.y, size.x, size.y};
+            Vector2 origin = {e.transform.extent.x, e.transform.extent.y};
+
+            DrawTexturePro(e.sprite.texture, source, dest, origin, RAD2DEG * radians, WHITE);
         }
         break;
 
@@ -88,21 +102,49 @@ inline void SpikeRender(const GameEntity &e, float unitsPerMeter)
         break;
 
     case SpikeType::CHAIN:
-        // Hanging chain hook
-        if (e.spikeProps.chainLength > 0.0f)
+    {
+        // Rope + hook: script.user holds the context
+        struct ChainContext
         {
-            Vector2 chainTop = {center.x, center.y - e.spikeProps.chainLength};
-            DrawLineEx(chainTop, center, 3.0f, DARKGRAY);
-            // Draw chain links
-            for (float y = chainTop.y; y < center.y; y += 10.0f)
-            {
-                DrawCircleV({chainTop.x, y}, 4.0f, GRAY);
-            }
+            b2BodyId hookBody;
+            float halfW;
+            float halfH;
+        };
+        auto *ctx = (e.script.user != nullptr) ? static_cast<ChainContext *>(e.script.user) : nullptr;
+        if (ctx)
+        {
+            // Draw rope as a line from spike bottom to hook top
+            float spikeHalfM = (e.transform.extent.y / unitsPerMeter);
+
+            b2RevoluteJointDef jointDef = b2DefaultRevoluteJointDef();
+
+            // Vector2 anchorBot = {center.x, center.y + e.transform.extent.y};
+            // b2Vec2 hp = b2Body_GetPosition(ctx->hookBody);
+            // b2Rot hr = b2Body_GetRotation(ctx->hookBody);
+            // float ha = b2Rot_GetAngle(hr);
+            // Vector2 hc = {hp.x * unitsPerMeter, hp.y * unitsPerMeter};
+            // Vector2 hookTopOffset = {0.0f, -ctx->halfH * e.spikeProps.hookScaleH};
+            // // rotate offset by hook angle
+            // float ca = cosf(ha), sa = sinf(ha);
+            // Vector2 hookTop = {hc.x + hookTopOffset.x * ca - hookTopOffset.y * sa, hc.y + hookTopOffset.x * sa + hookTopOffset.y * ca};
+            // DrawLineEx(anchorBot, hookTop, 3.0f, DARKGRAY);
+
+            // Draw hook rectangle
+            // Vector2 hsize = {2.0f * ctx->halfW * e.spikeProps.hookScaleW, 2.0f * ctx->halfH * e.spikeProps.hookScaleH};
+            // DrawRectanglePro((Rectangle){hc.x, hc.y, hsize.x, hsize.y}, (Vector2){hsize.x * 0.5f, hsize.y * 0.5f}, RAD2DEG * ha, e.visual.color);
         }
-        // Hook at bottom
-        DrawCircleV(center, r, e.visual.color);
-        DrawCircleSector(center, r * 1.2f, 45, 315, 16, DARKGRAY);
+        else
+        {
+            // Fallback simple render
+            if (e.spikeProps.chainLength > 0.0f)
+            {
+                Vector2 chainTop = {center.x, center.y - e.spikeProps.chainLength};
+                DrawLineEx(chainTop, center, 3.0f, DARKGRAY);
+            }
+            DrawCircleV(center, r, e.visual.color);
+        }
         break;
+    }
     }
 }
 
@@ -179,6 +221,7 @@ inline GameEntity makeObstacleEntity(
     float unitsPerMeter,
     const b2Vec2 &extentPx,
     const b2Vec2 &posMeters,
+    const Texture &texture,
     const VisualStyle &visualStyle = VisualStyle{{DARKGRAY}, 0.0f, false})
 {
     b2BodyDef def = b2DefaultBodyDef();
@@ -188,6 +231,7 @@ inline GameEntity makeObstacleEntity(
     e.id = em.create();
     e.body.id = b2CreateBody(world, &def);
     e.transform.extent = extentPx;
+    e.sprite.texture = texture;
     e.visual = visualStyle;
     // physics shape sized to extent
     b2Polygon poly = b2MakeBox(extentPx.x / unitsPerMeter, extentPx.y / unitsPerMeter);
@@ -205,6 +249,7 @@ inline GameEntity makeSpikeEntity(
     float unitsPerMeter,
     float radiusPx,
     const b2Vec2 &posMeters,
+    const Texture &texture,
     const SpikeProperties &spikeProps = SpikeProperties{},
     const VisualStyle &visualStyle = VisualStyle{{RED}, 0.0f, false})
 {
@@ -216,6 +261,7 @@ inline GameEntity makeSpikeEntity(
     e.id = em.create();
     e.body.id = b2CreateBody(world, &def);
     e.transform.extent = {radiusPx, radiusPx};
+    e.sprite.texture = texture;
     e.visual = visualStyle;
     e.spikeProps = spikeProps;
     // Create heavy static-like shape so spike doesn't move
@@ -223,14 +269,79 @@ inline GameEntity makeSpikeEntity(
     b2ShapeDef sdef = b2DefaultShapeDef();
     sdef.density = 10000.0f; // Very heavy to resist movement
     sdef.material.friction = 1.0f;
+    // If this is a chain spike and self-collide is disabled, keep anchor out of chain collisions
+    if (spikeProps.type == SpikeType::CHAIN && !spikeProps.chainSelfCollide)
+    {
+        sdef.filter.groupIndex = -1;
+    }
     b2CreatePolygonShape(e.body.id, &sdef, &poly);
 
     // Add high damping to prevent any movement
     b2Body_SetLinearDamping(e.body.id, 100.0f);
     b2Body_SetAngularDamping(e.body.id, 100.0f);
+    // Optional: lock anchor rotation for extra stability
+    b2Body_SetFixedRotation(e.body.id, true);
 
     e.script.update = &SpikeUpdate;
     e.script.render = &SpikeRender;
+
+    // If chain type, create only a rope (distance joint) and a rectangular hook
+    if (spikeProps.type == SpikeType::CHAIN && spikeProps.chainLength > 0.0f)
+    {
+        struct ChainContext
+        {
+            b2BodyId hookBody;
+            float halfW;
+            float halfH;
+        };
+        auto *ctx = new ChainContext{};
+        const float baseHalfW = spikeProps.linkThicknessPx * 0.5f; // reuse link dims as hook base
+        const float baseHalfH = spikeProps.linkLengthPx * 0.5f;
+        ctx->halfW = baseHalfW;
+        ctx->halfH = baseHalfH;
+
+        const float spikeHalfM = (radiusPx / unitsPerMeter);
+        const float ropeLenM = (spikeProps.chainLength / unitsPerMeter);
+        const b2Vec2 anchorPos = posMeters;
+
+        // Create the hook body at rope length below the spike bottom
+        b2BodyDef hdef = b2DefaultBodyDef();
+        hdef.type = b2_dynamicBody;
+        hdef.position = {anchorPos.x, anchorPos.y + spikeHalfM + ropeLenM};
+        hdef.linearDamping = 0.6f;
+        hdef.angularDamping = 0.8f;
+        ctx->hookBody = b2CreateBody(world, &hdef);
+
+        // Hook rectangle shape
+        b2Polygon hpoly = b2MakeBox((ctx->halfW * spikeProps.hookScaleW) / unitsPerMeter,
+                                    (ctx->halfH * spikeProps.hookScaleH) / unitsPerMeter);
+        b2ShapeDef hsdef = b2DefaultShapeDef();
+        hsdef.density = std::max(spikeProps.linkDensity * 1.5f, 1.0f);
+        hsdef.material.friction = spikeProps.linkFriction;
+        hsdef.material.restitution = spikeProps.linkRestitution;
+        if (!spikeProps.chainSelfCollide)
+            hsdef.filter.groupIndex = -1; // keep hook from colliding with spike
+        b2CreatePolygonShape(ctx->hookBody, &hsdef, &hpoly);
+
+        // Rope via distance joint, configured like the debug rope: center anchors,
+        // no spring, and a maxLength clamp (behaves like a rope with slack)
+        b2DistanceJointDef jdef = b2DefaultDistanceJointDef();
+        jdef.bodyIdA = e.body.id;
+        jdef.bodyIdB = ctx->hookBody;
+        jdef.localAnchorA = {0.0f, 0.0f};
+        jdef.localAnchorB = {0.0f, 0.0f};
+        jdef.length = ropeLenM;    // nominal
+        jdef.minLength = 0.0f;     // allow slack
+        jdef.maxLength = ropeLenM; // rope limit
+        jdef.enableSpring = false; // pure rope behavior
+        jdef.hertz = 0.0f;         // ignored when spring disabled
+        jdef.dampingRatio = 0.0f;  // ignored when spring disabled
+        b2CreateDistanceJoint(world, &jdef);
+
+        e.script.user = ctx;
+        e.script.freeFn = [](void *p)
+        { delete static_cast<ChainContext *>(p); };
+    }
     return e;
 }
 

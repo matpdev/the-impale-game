@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <functional>
 #include "raylib.h"
 #include "box2d/box2d.h"
 
@@ -29,6 +30,9 @@
 
 namespace level
 {
+    // Callback for loading textures on-demand
+    using TextureLoaderFn = std::function<Texture(const std::string &path)>;
+
     struct BuildContext
     {
         EntityManager &em;
@@ -45,6 +49,7 @@ namespace level
         std::vector<GameEntity> &obstacles;
         std::vector<GameEntity> &spikes;
         std::vector<GameEntity> &throwers;
+        TextureLoaderFn textureLoader; // Callback to load textures dynamically
     };
 
     // Loads scenario and populates entity vectors. Returns true on success.

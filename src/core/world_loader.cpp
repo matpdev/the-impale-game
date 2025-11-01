@@ -101,7 +101,27 @@ namespace level
         }
         props.rotationSpeed = getFloatOr(v, "rotationSpeed", 90.0f); // default 90 deg/sec for saws
         props.chainLength = getFloatOr(v, "chainLength", 50.0f);
+        // Optional chain-specific tuning
+        props.linkLengthPx = getFloatOr(v, "linkLengthPx", props.linkLengthPx);
+        props.linkThicknessPx = getFloatOr(v, "linkThicknessPx", props.linkThicknessPx);
+        props.linkDensity = getFloatOr(v, "linkDensity", props.linkDensity);
+        props.linkFriction = getFloatOr(v, "linkFriction", props.linkFriction);
+        props.linkRestitution = getFloatOr(v, "linkRestitution", props.linkRestitution);
+        props.hookScaleW = getFloatOr(v, "hookScaleW", props.hookScaleW);
+        props.hookScaleH = getFloatOr(v, "hookScaleH", props.hookScaleH);
+        props.jointHertz = getFloatOr(v, "jointHertz", props.jointHertz);
+        props.jointDamping = getFloatOr(v, "jointDamping", props.jointDamping);
+        if (v.contains("chainSelfCollide"))
+            props.chainSelfCollide = toml::find<bool>(v, "chainSelfCollide");
         return props;
+    }
+
+    // Parse texture path from TOML with default fallback
+    static std::string parseTexturePath(const toml::value &v, const char *key, const std::string &defaultPath)
+    {
+        if (!v.contains(key))
+            return defaultPath;
+        return toml::find<std::string>(v, key);
     }
 
     bool LoadScenarioFromToml(const std::string &path, BuildContext &ctx)
@@ -131,7 +151,14 @@ namespace level
 
                 VisualStyle visual = parseVisualStyle(v, DARKGRAY);
 
-                ctx.obstacles.push_back(makeObstacleEntity(ctx.em, ctx.world, ctx.unitsPerMeter, extentPx, posM, visual));
+                // Load texture for this obstacle (fallback to default)
+                std::string texturePath = parseTexturePath(v, "texture", "ground.png");
+                Texture obstacleTexture = ctx.textureLoader ? ctx.textureLoader(texturePath) : ctx.groundTexture;
+
+                // Create polygon for this obstacle size
+                b2Polygon obstaclePoly = b2MakeBox(extentPx.x / ctx.unitsPerMeter, extentPx.y / ctx.unitsPerMeter);
+
+                ctx.obstacles.push_back(makeObstacleEntity(ctx.em, ctx.world, ctx.unitsPerMeter, extentPx, posM, obstacleTexture, visual));
             }
         }
 
@@ -148,7 +175,11 @@ namespace level
                 VisualStyle visual = parseVisualStyle(v, RED);
                 SpikeProperties spikeProps = parseSpikeProperties(v);
 
-                ctx.spikes.push_back(makeSpikeEntity(ctx.em, ctx.world, ctx.unitsPerMeter, r, posM, spikeProps, visual));
+                // Load texture for this spike (fallback to box texture)
+                std::string texturePath = parseTexturePath(v, "texture", "box.png");
+                Texture spikeTexture = ctx.textureLoader ? ctx.textureLoader(texturePath) : ctx.boxTexture;
+
+                ctx.spikes.push_back(makeSpikeEntity(ctx.em, ctx.world, ctx.unitsPerMeter, r, posM, spikeTexture, spikeProps, visual));
             }
         }
 
@@ -168,7 +199,12 @@ namespace level
                 b2Vec2 posM = toMeters(x, y, ctx.unitsPerMeter);
                 // visual size for thrower block
                 b2Vec2 extentPx = {32.0f, 32.0f};
-                ctx.throwers.push_back(makeThrowerEntity(ctx.em, ctx.world, ctx.unitsPerMeter, extentPx, posM, power, impulseMult, ctx.boxTexture, ctx.boxPolygon, ctx.boxExtentPx, ctx.boxes));
+
+                // Load texture for thrower (fallback to box texture)
+                std::string texturePath = parseTexturePath(t, "texture", "box.png");
+                Texture throwerTexture = ctx.textureLoader ? ctx.textureLoader(texturePath) : ctx.boxTexture;
+
+                ctx.throwers.push_back(makeThrowerEntity(ctx.em, ctx.world, ctx.unitsPerMeter, extentPx, posM, power, impulseMult, throwerTexture, ctx.boxPolygon, ctx.boxExtentPx, ctx.boxes));
             }
         }
 
