@@ -1,6 +1,11 @@
 [
 {
   "directory": "/home/mistergrow/Projects/the-jumper",
-  "arguments": ["/usr/bin/g++", "-c", "-m64", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-O3", "-isystem", "/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include", "-isystem", "/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include", "-isystem", "/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include", "-DNDEBUG", "-o", "build/.objs/the-jumper/linux/x86_64/release/src/main.cpp.o", "src/main.cpp"],
+  "arguments": ["/usr/bin/g++", "-c", "-m64", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-O3", "-isystem", "/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include", "-isystem", "/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include", "-isystem", "/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include", "-isystem", "/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/d9b5d9555a9849b0a8e5714c4e66d566/include", "-DNDEBUG", "-o", "build/.objs/the-jumper/linux/x86_64/release/src/main.cpp.o", "src/main.cpp"],
   "file": "src/main.cpp"
+},
+{
+  "directory": "/home/mistergrow/Projects/the-jumper",
+  "arguments": ["/usr/bin/g++", "-c", "-m64", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-O3", "-isystem", "/home/mistergrow/.xmake/packages/r/raygui/4.0/9d606ceee8cb49559023212a8fb08d54/include", "-isystem", "/home/mistergrow/.xmake/packages/r/raylib/5.5/efaf75c5cc7042868d9f9fc4196a080a/include", "-isystem", "/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/2aecaa50772341c7b9eb7c79ee9859aa/include", "-isystem", "/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/d9b5d9555a9849b0a8e5714c4e66d566/include", "-DNDEBUG", "-o", "build/.objs/the-jumper/linux/x86_64/release/src/core/world_loader.cpp.o", "src/core/world_loader.cpp"],
+  "file": "src/core/world_loader.cpp"
 }]

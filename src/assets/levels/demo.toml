@@ -1,0 +1,47 @@
+# Demo level with customizable objects
+
+[thrower]
+x = 600
+y = 800
+power = 250.0
+impulseMultiplier = 18.0
+
+# Obstacles with custom colors
+[[obstacles]]
+x = 300
+y = 980
+w = 500
+h = 40
+color = [139, 69, 19] # Brown platform
+roundness = 0.1
+
+[[obstacles]]
+x = 1000
+y = 900
+w = 300
+h = 40
+color = [100, 100, 100] # Gray platform
+
+# Different spike types
+[[spikes]]
+x = 1300
+y = 820
+r = 24
+type = "normal"
+color = [255, 0, 0] # Red spike
+
+[[spikes]]
+x = 1500
+y = 760
+r = 28
+type = "saw"
+rotationSpeed = 120.0
+color = [200, 50, 50] # Dark red saw
+
+[[spikes]]
+x = 800
+y = 600
+r = 20
+type = "chain"
+chainLength = 100.0
+color = [150, 150, 150] # Gray chain hook
