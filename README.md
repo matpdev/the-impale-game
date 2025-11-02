@@ -5,6 +5,14 @@ A physics-based micro-mission game where you throw objects to impale, destroy, a
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS%20%7C%20Web-lightgrey)
 ![Build](https://img.shields.io/badge/build-xmake-green)
+[![Build](https://github.com/matpdev/the-impale-game/actions/workflows/build.yml/badge.svg)](https://github.com/matpdev/the-impale-game/actions/workflows/build.yml)
+[![Pages](https://github.com/matpdev/the-impale-game/actions/workflows/pages.yml/badge.svg)](https://github.com/matpdev/the-impale-game/actions/workflows/pages.yml)
+
+## 🌐 Play Online
+
+**[Play the latest version in your browser →](https://matpdev.github.io/the-impale-game/)**
+
+The web version is automatically deployed from the master branch.
 
 ## ✨ Features
 
@@ -142,7 +150,31 @@ the-jumper/
 | **GUI** | [raygui](https://github.com/raysan5/raygui) | 4.0 (native only) |
 | **Build** | [xmake](https://xmake.io/) | Latest |
 
-## 📖 Documentation
+## � Download
+
+### Pre-built Binaries
+
+Download the latest release for your platform:
+- **[Latest Release →](https://github.com/matpdev/the-impale-game/releases/latest)**
+  - Linux (x86_64)
+  - Windows (x64)
+  - macOS (x86_64)
+  - Web (WASM)
+
+### Play Online
+- **[Web Version →](https://matpdev.github.io/the-impale-game/)** (automatically updated from master)
+
+## 🔨 CI/CD
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+- **Build Workflow**: Automatically builds for all platforms (Linux, Windows, macOS, Web) on every push
+- **Pages Deployment**: Deploys web version to GitHub Pages on push to master
+- **Release Automation**: Creates downloadable artifacts when a release is published
+
+View workflows: [GitHub Actions](https://github.com/matpdev/the-impale-game/actions)
+
+## �📖 Documentation
 
 For detailed architecture, component descriptions, and development guidelines, see:
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Complete technical documentation

@@ -1,0 +1,41 @@
+name: Create Release
+
+on:
+    push:
+        tags:
+            - "v*.*.*" # Triggers on tags like v1.0.0, v0.1.0, etc.
+
+jobs:
+    create-release:
+        name: Create Release
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Extract version from tag
+              id: version
+              run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+            - name: Create Release
+              uses: softprops/action-gh-release@v1
+              with:
+                  name: Release ${{ steps.version.outputs.VERSION }}
+                  body: |
+                      ## What's Changed
+
+                      ### Features
+                      - New features go here
+
+                      ### Bug Fixes
+                      - Bug fixes go here
+
+                      ### Downloads
+                      Binaries will be attached automatically once the build workflow completes.
+
+                      **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.version.outputs.VERSION }}...HEAD
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

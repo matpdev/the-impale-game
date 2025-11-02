@@ -1,0 +1,187 @@
+name: Build
+
+on:
+    push:
+        branches: [master, main]
+    pull_request:
+        branches: [master, main]
+    release:
+        types: [created]
+
+jobs:
+    build-linux:
+        name: Build Linux
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install xmake
+              uses: xmake-io/github-action-setup-xmake@v1
+              with:
+                  xmake-version: latest
+
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev
+
+            - name: Configure xmake
+              run: xmake f -p linux -a x86_64 -m release -y
+
+            - name: Build
+              run: xmake build the-impale-game
+
+            - name: Package artifacts
+              run: |
+                  mkdir -p artifacts/linux
+                  cp -r build/linux/x86_64/release/* artifacts/linux/
+                  tar -czf the-impale-game-linux-x86_64.tar.gz -C artifacts/linux .
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: the-impale-game-linux-x86_64
+                  path: the-impale-game-linux-x86_64.tar.gz
+
+            - name: Upload to release
+              if: github.event_name == 'release'
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: the-impale-game-linux-x86_64.tar.gz
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    build-windows:
+        name: Build Windows
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install xmake
+              uses: xmake-io/github-action-setup-xmake@v1
+              with:
+                  xmake-version: latest
+
+            - name: Configure xmake
+              run: xmake f -p windows -a x64 -m release -y
+
+            - name: Build
+              run: xmake build the-impale-game
+
+            - name: Package artifacts
+              run: |
+                  mkdir artifacts/windows
+                  cp -r build/windows/x64/release/* artifacts/windows/
+                  Compress-Archive -Path artifacts/windows/* -DestinationPath the-impale-game-windows-x64.zip
+              shell: pwsh
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: the-impale-game-windows-x64
+                  path: the-impale-game-windows-x64.zip
+
+            - name: Upload to release
+              if: github.event_name == 'release'
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: the-impale-game-windows-x64.zip
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    build-macos:
+        name: Build macOS
+        runs-on: macos-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install xmake
+              uses: xmake-io/github-action-setup-xmake@v1
+              with:
+                  xmake-version: latest
+
+            - name: Configure xmake
+              run: xmake f -p macosx -a x86_64 -m release -y
+
+            - name: Build
+              run: xmake build the-impale-game
+
+            - name: Package artifacts
+              run: |
+                  mkdir -p artifacts/macos
+                  cp -r build/macosx/x86_64/release/* artifacts/macos/
+                  tar -czf the-impale-game-macos-x86_64.tar.gz -C artifacts/macos .
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: the-impale-game-macos-x86_64
+                  path: the-impale-game-macos-x86_64.tar.gz
+
+            - name: Upload to release
+              if: github.event_name == 'release'
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: the-impale-game-macos-x86_64.tar.gz
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    build-web:
+        name: Build Web (WASM)
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install xmake
+              uses: xmake-io/github-action-setup-xmake@v1
+              with:
+                  xmake-version: latest
+
+            - name: Setup Emscripten
+              uses: mymindstorm/setup-emsdk@v14
+              with:
+                  version: latest
+
+            - name: Verify Emscripten
+              run: emcc --version
+
+            - name: Configure xmake
+              run: xmake f -p wasm -a wasm32 --toolchain=emcc -m release -y
+
+            - name: Build
+              run: xmake build the-impale-game-web
+
+            - name: Package artifacts
+              run: |
+                  mkdir -p artifacts/web
+                  cp -r build/wasm/release/* artifacts/web/
+                  cd artifacts
+                  tar -czf ../the-impale-game-web.tar.gz web/
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: the-impale-game-web
+                  path: the-impale-game-web.tar.gz
+
+            - name: Upload web directory for Pages
+              uses: actions/upload-artifact@v4
+              with:
+                  name: web-deploy
+                  path: artifacts/web/
+
+            - name: Upload to release
+              if: github.event_name == 'release'
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: the-impale-game-web.tar.gz
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
