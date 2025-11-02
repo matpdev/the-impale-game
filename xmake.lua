@@ -5,6 +5,22 @@ if is_plat("wasm") then
     add_requires("raylib", {configs = {platform = "Web"}})
     add_requires("box2d", "toml11")
     -- raygui not supported on WASM yet
+    -- Auto-clean incompatible cached native raylib to force a proper WASM rebuild
+    -- This prevents linking against X11/OpenGL libs when switching from native -> wasm
+    do
+        local home = os.getenv("HOME")
+        if home then
+            local raylib_cache = home .. "/.xmake/packages/r/raylib"
+            if os.isdir(raylib_cache) then
+                print("[xmake] Cleaning cached raylib package to force WASM rebuild ...")
+                if type(os.tryrm) == "function" then
+                    os.tryrm(raylib_cache)
+                elseif type(os.rm) == "function" then
+                    os.rm(raylib_cache)
+                end
+            end
+        end
+    end
 else
     add_requires("raylib", "raygui", "box2d", "toml11")
 end
@@ -68,4 +84,20 @@ target("the-impale-game-web")
     if is_mode("release") then
         add_ldflags("-O3")
     end
+
+    -- As an extra safeguard, clean cached native raylib just before building this target
+    before_build(function(t)
+        local home = os.getenv("HOME")
+        if home then
+            local raylib_cache = home .. "/.xmake/packages/r/raylib"
+            if os.isdir(raylib_cache) then
+                print("[xmake] (web) Cleaning cached raylib package to force WASM rebuild ...")
+                if type(os.tryrm) == "function" then
+                    os.tryrm(raylib_cache)
+                elseif type(os.rm) == "function" then
+                    os.rm(raylib_cache)
+                end
+            end
+        end
+    end)
 target_end()
