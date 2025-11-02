@@ -60,7 +60,30 @@ source ~/emsdk/emsdk_env.fish  # for Fish shell
 
 ### Build & Run
 
-#### Native (Linux)
+#### Quick Build Script (Recommended)
+
+Use the provided `build.fish` script for easy platform switching:
+
+```fish
+# Native build and run
+./build.fish native --run
+
+# Web build and serve
+./build.fish web --serve
+
+# Clean rebuild
+./build.fish native --clean
+
+# Debug mode
+./build.fish native --debug
+
+# Show all options
+./build.fish --help
+```
+
+#### Manual Build (Advanced)
+
+##### Native (Linux)
 ```bash
 # Configure
 xmake f -p linux -a x86_64 -m release
@@ -74,7 +97,7 @@ xmake run the-impale-game
 ./build/linux/x86_64/release/the-impale-game
 ```
 
-#### Web (WASM)
+##### Web (WASM)
 ```bash
 # Configure
 xmake f -p wasm -a wasm32 --toolchain=emcc -m release

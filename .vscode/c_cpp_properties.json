@@ -1,11 +1,11 @@
 {
   "configurations":[{
-      "cppStandard":"c++17",
       "defines":[],
+      "includePath":["${workspaceFolder}/**","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/e9b81d47d1ba45ecb0ceb12727281ab4/include","/home/mistergrow/.xmake/packages/r/raylib/5.5/7c3cb30070034ef5bac4ec6c81c3c2a8/include","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/94b18aa4a9fe48cf8350b8596970c7a9/include/**","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/e9b81d47d1ba45ecb0ceb12727281ab4/include/**","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/94b18aa4a9fe48cf8350b8596970c7a9/include","/home/mistergrow/.xmake/packages/r/raylib/5.5/7c3cb30070034ef5bac4ec6c81c3c2a8/include/**"],
       "name":"Linux",
-      "cStandard":"c17",
       "intelliSenseMode":"linux-clang-x64",
-      "includePath":["${workspaceFolder}/**","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/e9b81d47d1ba45ecb0ceb12727281ab4/include/**","/home/mistergrow/.xmake/packages/r/raylib/5.5/7c3cb30070034ef5bac4ec6c81c3c2a8/include","/home/mistergrow/.xmake/packages/b/box2d/v3.1.1/e9b81d47d1ba45ecb0ceb12727281ab4/include","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/94b18aa4a9fe48cf8350b8596970c7a9/include/**","/home/mistergrow/.xmake/packages/t/toml11/v4.4.0/94b18aa4a9fe48cf8350b8596970c7a9/include","/home/mistergrow/.xmake/packages/r/raylib/5.5/7c3cb30070034ef5bac4ec6c81c3c2a8/include/**"],
+      "cStandard":"c17",
+      "cppStandard":"c++17",
       "compilerPath":"/usr/bin/clang"
     }],
   "version":4
