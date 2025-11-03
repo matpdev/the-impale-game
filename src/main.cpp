@@ -5,10 +5,13 @@
 #include "includes/components/transform.hpp"
 #include "includes/components/sprite.hpp"
 #include "includes/components/impaled.hpp"
+#include "includes/components/advertisement.hpp"
 #include "includes/entities/types.hpp"
 #include "includes/entities/factory.hpp"
 #include "includes/systems/render_system.hpp"
 #include "includes/systems/logic_system.hpp"
+#include "includes/systems/advertisement_system.hpp"
+#include "includes/systems/camera_system.hpp"
 #include "includes/core/entity_manager.hpp"
 #include "includes/core/world_loader.hpp"
 
@@ -73,6 +76,36 @@ int main(void)
 
     // Create texture cache
     TextureCache textureCache;
+
+    // Initialize advertisement system
+    AdvertisementSystem adSystem;
+    if (!adSystem.LoadFromTOML(ASSET_PATH("ads_config.toml")))
+    {
+        TraceLog(LOG_WARNING, "Failed to load ads configuration, continuing without ads");
+    }
+    else
+    {
+        // Activate initial ads (banners fixos na tela)
+        adSystem.ActivateAd("banner_top_001");
+        adSystem.ActivateAd("banner_side_002");
+
+        TraceLog(LOG_INFO, "Advertisement system initialized");
+    }
+
+    // Initialize game camera for parallax ads
+    GameCamera gameCamera;
+    gameCamera.position = {0.0f, 0.0f};
+    gameCamera.offset = {(float)width / 2.0f, (float)height / 2.0f};
+    gameCamera.zoom = 1.0f;
+    gameCamera.rotation = 0.0f;
+    gameCamera.UpdateViewport(width, height);
+
+    // Connect camera to advertisement system
+    adSystem.SetCamera(&gameCamera);
+
+    // Ativa o template de parallax - o sistema gera múltiplos automaticamente
+    adSystem.ActivateAd("parallax_bg_template");
+    adSystem.ActivateAd("world_sign_001");
 
     Texture groundTexture = textureCache.load(ASSET_PATH("ground.png"));
     Texture boxTexture = textureCache.load(ASSET_PATH("block.png"));
@@ -150,10 +183,84 @@ int main(void)
         // Update game logic
         UpdateLogic(logicCtx, GetFrameTime());
 
+        // Update advertisement system
+        adSystem.Update(GetFrameTime());
+
+        // Limpa anúncios que estão muito longe da câmera (economiza memória)
+        // Executado a cada 60 frames (~1 segundo a 60 fps)
+        static int cleanupFrameCounter = 0;
+        if (++cleanupFrameCounter >= 60)
+        {
+            adSystem.CleanupOffscreenAds(gameCamera, 3000.0f); // Remove ads > 3000px de distância
+            cleanupFrameCounter = 0;
+        }
+
+        // Auto-scroll da câmera (movimento automático horizontal)
+        static bool autoScroll = true;
+        static float scrollSpeed = 50.0f; // pixels por segundo
+
+        if (IsKeyPressed(KEY_A))
+        {
+            autoScroll = !autoScroll;
+            TraceLog(LOG_INFO, "Auto-scroll: %s", autoScroll ? "ON" : "OFF");
+        }
+
+        if (autoScroll)
+        {
+            gameCamera.position.x += scrollSpeed * GetFrameTime();
+        }
+
+        // Controles manuais (desativa auto-scroll ao usar)
+        float cameraSpeed = 300.0f * GetFrameTime();
+        if (IsKeyDown(KEY_LEFT))
+        {
+            gameCamera.position.x -= cameraSpeed;
+            autoScroll = false;
+        }
+        if (IsKeyDown(KEY_RIGHT))
+        {
+            gameCamera.position.x += cameraSpeed;
+            autoScroll = false;
+        }
+        if (IsKeyDown(KEY_UP))
+            gameCamera.position.y -= cameraSpeed;
+        if (IsKeyDown(KEY_DOWN))
+            gameCamera.position.y += cameraSpeed;
+
+        // Mouse drag (middle button) - desativa auto-scroll
+        if (IsMouseButtonDown(MOUSE_MIDDLE_BUTTON))
+        {
+            Vector2 delta = GetMouseDelta();
+            gameCamera.position.x -= delta.x / gameCamera.zoom;
+            gameCamera.position.y -= delta.y / gameCamera.zoom;
+            autoScroll = false;
+        }
+
+        // Check ad clicks
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        {
+            Vector2 mousePos = GetMousePosition();
+            adSystem.CheckClick(mousePos);
+        }
+
         // Render frame
         RenderFrame(renderCtx);
+
+        // Render advertisements with parallax/world-space (must be before fixed screen ads)
+        adSystem.RenderWithCamera(gameCamera);
+
+        // Render fixed screen advertisements on top
+        adSystem.Render();
+
+        // Debug: Show camera position and controls
+        DrawText(TextFormat("Camera: (%.0f, %.0f) | Auto-scroll: %s [A to toggle]",
+                            gameCamera.position.x, gameCamera.position.y,
+                            autoScroll ? "ON" : "OFF"),
+                 10, height - 30, 20, YELLOW);
     }
 
+    // Cleanup
+    adSystem.Cleanup();
     textureCache.unloadAll();
     CloseWindow();
 

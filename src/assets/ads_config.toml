@@ -1,0 +1,81 @@
+# Configuração de Anúncios - Impale Game
+
+[settings]
+log_file = "ads_log.txt"
+cache_dir = "cache/ads"
+max_cache_age_days = 7
+rotation_interval = 10.0
+
+[[advertisement]]
+id = "banner_top_001"
+name = "Banner Superior"
+sponsor = "Impale Sponsor"
+type = "static_image"
+source = "local"
+asset_path = "ads/banner_top.png"
+position = { x = 10.0, y = 10.0 }
+size = { width = 300.0, height = 60.0 }
+rotation = 0.0
+opacity = 0.9
+display_duration = 0.0
+loop = false
+clickable = false
+
+[[advertisement]]
+id = "banner_side_002"
+name = "Banner Lateral"
+sponsor = "Game Info"
+type = "static_image"
+source = "local"
+asset_path = "ads/banner_side.png"
+position = { x = 1600.0, y = 200.0 }
+size = { width = 300.0, height = 150.0 }
+rotation = 0.0
+opacity = 0.85
+display_duration = 0.0
+loop = false
+clickable = false
+
+# Template de anúncio em parallax - gera múltiplos automaticamente
+# auto_generate: true para criar múltiplos anúncios automaticamente
+# start_x, end_x: intervalo de geração (em pixels no mundo)
+# spacing: distância entre cada anúncio gerado (pixels)
+[[advertisement]]
+id = "parallax_bg_template"
+name = "Parallax Background Ad"
+sponsor = "Background Sponsor"
+type = "static_image"
+source = "local"
+asset_path = "ads/banner_top.png"
+placement_mode = "parallax_background"
+parallax_factor = 0.5
+world_position = { x = 0.0, y = 400.0 }
+size = { width = 300.0, height = 60.0 }
+rotation = 0.0
+opacity = 0.7
+display_duration = 0.0
+loop = true
+clickable = false
+max_visible = 10
+# Parâmetros de geração automática
+auto_generate = true
+start_x = 0.0
+end_x = 5000.0
+spacing = 1000.0
+
+# Exemplo de anúncio fixo no mundo (não parallax)
+[[advertisement]]
+id = "world_sign_001"
+name = "World Sign"
+sponsor = "In-World Brand"
+type = "static_image"
+source = "local"
+asset_path = "ads/banner_side.png"
+placement_mode = "world_space"
+world_position = { x = 500.0, y = 300.0 }
+size = { width = 200.0, height = 100.0 }
+rotation = 0.0
+opacity = 1.0
+display_duration = 0.0
+loop = false
+clickable = false
