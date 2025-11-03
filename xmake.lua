@@ -42,9 +42,13 @@ target("the-impale-game")
 
     before_build(function(target)
         print("🧠 Updating include paths before build...")
-        -- Run your Lua script using xmake's built-in interpreter
-        os.exec("lua src/tools/update_includes.lua")
-        print("✅ includePath updated!")
+        -- Run the update_includes script (optional - don't fail build if missing)
+        local script_path = path.join(os.scriptdir(), "src/tools/update_includes.lua")
+        if os.isfile(script_path) then
+            os.execv("lua", {script_path})
+        else
+            print("⚠️  Warning: update_includes.lua not found, skipping...")
+        end
     end)
 target_end()
 
