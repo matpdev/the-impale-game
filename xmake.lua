@@ -40,16 +40,16 @@ target("the-impale-game")
     --     os.execv(target:targetfile())
     -- end)
 
-    before_build(function(target)
-        print("🧠 Updating include paths before build...")
-        -- Run the update_includes script (optional - don't fail build if missing)
-        local script_path = path.join(os.scriptdir(), "src/tools/update_includes.lua")
-        if os.isfile(script_path) then
-            os.execv("lua", {script_path})
-        else
-            print("⚠️  Warning: update_includes.lua not found, skipping...")
-        end
-    end)
+    -- before_build(function(target)
+    --     print("🧠 Updating include paths before build...")
+    --     -- Run the update_includes script (optional - don't fail build if missing)
+    --     local script_path = path.join(os.scriptdir(), "src/tools/update_includes.lua")
+    --     if os.isfile(script_path) then
+    --         os.execv("lua", {script_path})
+    --     else
+    --         print("⚠️  Warning: update_includes.lua not found, skipping...")
+    --     end
+    -- end)
 target_end()
 
 -- Web build target (Emscripten/WASM)
